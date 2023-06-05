@@ -33,6 +33,7 @@ import os
 from os import path
 from time import time
 import urllib
+import re
 
 if sys.version_info[0] > 2:
     from urllib import request
@@ -2836,12 +2837,62 @@ def extract_triplets(input_string):
 
     return triplets
 
+def compute_sequence(chain):
+    
+    sequence = []
+
+    for base in chain:
+        if (len(base[1]) > 1):
+            sequence.append(base[1][len(base[1]) - 1])
+        else:
+            sequence.append(base[1])
+
+    return sequence
+
+def extract_strings(input_string):
+    pattern = r"'p_1': \[.*?\]|\[([^]]+)\]"
+    matches = re.findall(pattern, input_string)
+    filtered_matches = [match for match in matches if not match.startswith("'p_1':")]
+    return filtered_matches
+
+def get_string_before_single_quote(input_string):
+    parts = input_string.split("'")
+    if len(parts) > 0:
+        return parts[0]
+    else:
+        return None
+
+def get_bpseq(interaction_to_list_of_tuples):
+
+    bonds = extract_strings(interaction_to_list_of_tuples) #remove headers
+
+    result = []
+
+    for obj in bonds:
+        parts = obj.split("|")
+        if len(parts) >= 7: #controlla che non è None
+
+            a = get_string_before_single_quote(parts[4])
+            b = parts[3]
+            if (len(b) > 1):
+                b = (b[len(b[1]) - 1])
+            c = get_string_before_single_quote(parts[8])
+
+            result.append(str(a + " " + b + " " + c))
+            print(str(a + " " + b + " " + c))
+
+    return result
+
 #dompute dot bracket notation
 def getDotBracket(interaction_to_list_of_tuples, f):
     
     chain = extract_triplets(str(interaction_to_list_of_tuples))
 
-    #print("items: ")
+    sequence = compute_sequence(chain)
+
+    #print("sequence: " , sequence)
+
+    bpseq = get_bpseq(str(interaction_to_list_of_tuples))
 
     #print(str(interaction_to_list_of_tuples).replace("), (", "), \n\t("))
 
@@ -2993,7 +3044,7 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
     Leontis_Westhof_basepairs = ['cWW', 'cSS', 'cHH', 'cHS', 'cHW', 'cSH', 'cSW', 'cWH', 'cWS', 'tSS', 'tHH', 'tHS', 'tHW', 'tSH', 'tSW', 'tWH', 'tWS', 'tWW']
 
     cat = category.split(",")
-
+    
     if category:
         for category in category.split(","):
             categories[category] = []
