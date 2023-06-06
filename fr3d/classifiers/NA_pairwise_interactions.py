@@ -2748,7 +2748,6 @@ def map_PDB_list_to_PDB_IFE_dict(PDB_list):
 
     return PDB_IFE_Dict
 
-
 def write_unit_data_file(PDB,unit_data_path,structure):
     """
     Write out data file(s) of nucleotide centers and rotation matrices,
@@ -2805,6 +2804,7 @@ def write_unit_data_file(PDB,unit_data_path,structure):
 
             print("  Wrote unit data file %s" % filename)
 
+#used to compute sequence
 def extract_triplets(input_string):
 
     start_index = input_string.find("'p_1': [") #TODO NON SONO SICURO CHE QUESTA SEZIONE VIENE SEMPRE CHIAMATA 'p_1' DA CONTROLLAREE!!!!!!!!! 
@@ -2837,72 +2837,40 @@ def extract_triplets(input_string):
 
     return triplets
 
+#returns the pairs ['number', 'nucleobase'] of each nucleobase in the chain
 def compute_sequence(chain):
     
     sequence = []
 
     for base in chain:
+        pair = []
+        pair.append(base[2])
         if (len(base[1]) > 1):
-            sequence.append(base[1][len(base[1]) - 1])
+            pair.append(base[1][len(base[1]) - 1])
         else:
-            sequence.append(base[1])
+            pair.append(base[1])
+        sequence.append(pair)
 
     return sequence
 
-def extract_strings(input_string):
-    pattern = r"'p_1': \[.*?\]|\[([^]]+)\]"
-    matches = re.findall(pattern, input_string)
-    filtered_matches = [match for match in matches if not match.startswith("'p_1':")]
-    return filtered_matches
+#compute the triplets of the bpseq bonds items
+def getOutput(bonds):
+    res = []
+    for a,b,c in bonds:
+        bond = []
+        id1 = a.split("|")
+        if (len(id1[3]) > 1):
+                id1[3] = (id1[3][len(id1[3]) - 1])
+        id2 = b.split("|")
+        bond.append(id1[4])
+        bond.append(id1[3])
+        bond.append(id2[4])
 
-def get_string_before_single_quote(input_string):
-    parts = input_string.split("'")
-    if len(parts) > 0:
-        return parts[0]
-    else:
-        return None
+        res.append(bond)
 
-def get_bpseq(interaction_to_list_of_tuples):
+    return res
 
-    bonds = extract_strings(interaction_to_list_of_tuples) #remove headers
-
-    result = []
-
-    for obj in bonds:
-        parts = obj.split("|")
-        if len(parts) >= 7: #controlla che non è None
-
-            a = get_string_before_single_quote(parts[4])
-            b = parts[3]
-            if (len(b) > 1):
-                b = (b[len(b[1]) - 1])
-            c = get_string_before_single_quote(parts[8])
-
-            result.append(str(a + " " + b + " " + c))
-            print(str(a + " " + b + " " + c))
-
-    return result
-
-#dompute dot bracket notation
-def getDotBracket(interaction_to_list_of_tuples, f):
-    
-    chain = extract_triplets(str(interaction_to_list_of_tuples))
-
-    sequence = compute_sequence(chain)
-
-    #print("sequence: " , sequence)
-
-    bpseq = get_bpseq(str(interaction_to_list_of_tuples))
-
-    #print(str(interaction_to_list_of_tuples).replace("), (", "), \n\t("))
-
-    #for a in chain:
-    #    print(a)
-
-    #TODO estrarre catena come stringa
-
-    return
-
+#returns an array containing every model found as ints
 def modelFound(input_string):
 
     start_index = input_string.find("'p_1': [") #Forse p_1 cambia qualche volta?
@@ -2920,12 +2888,62 @@ def modelFound(input_string):
 
     return result
 
+#returns true if the model number corresponds to the input
 def isSameModelNumber(a, model):
     n = a.split("|")
     if n[1] == model:
         return True
     else: 
         return False
+
+#this sorts the nucleobases in the bpseq array
+def order_bpseq(arr):
+    arr.sort(key=lambda x: int(x[0]))
+    return arr
+
+#add an item to the bpseq if it isn't present
+def add_triplet(arr, pair):
+    n, a = pair
+    
+    found = False
+    for triplet in arr:
+        if triplet[0] == n:
+            found = True
+            break
+    
+    if not found:
+        arr.append([n, a, '0'])
+    
+    return arr
+
+#this function adds the remaining nucleobases to the basepairs already in the bpseq
+def get_bpseq(bonds, interaction_to_list_of_tuples):
+
+    sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
+
+    for a in sequence:
+        add_triplet(bonds, a)
+
+    #also removes doubled instance in the array
+    res = order_bpseq(bonds)
+
+    noDuplicateRes = []
+
+    for bond in res:
+        if bond not in noDuplicateRes:
+            noDuplicateRes.append(bond)
+            print(str(bond[0] + " " + bond[1] + " " + bond[2])) 
+
+    #TODO debug
+    print(" ")
+    print(str(interaction_to_list_of_tuples).replace("), (", "), \n\t("))
+    print(" ")
+    print(str(noDuplicateRes).replace("], [","], \n\t[")) 
+    print(" ")
+
+
+
+    return res 
 
 def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions):
     """
@@ -2935,10 +2953,11 @@ def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list
     """
 
     #print whole structure found?
-    print(str(interaction_to_list_of_tuples).replace("), (","), \n("))
+    #print(str(interaction_to_list_of_tuples).replace("), (","), \n("))
 
     for model in modelFound(str(interaction_to_list_of_tuples)):
-        print(model)
+
+        bpseq = []
 
         # loop over types of output files requested
         for category in categories.keys():
@@ -2955,14 +2974,17 @@ def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list
                         if category == 'basepair':
                             inter = simplify_basepair(interaction)
 
-                        # compute dot bracket notation
-                        getDotBracket(interaction_to_list_of_tuples, f)
-                        
+                        # compute bpseq notation
+                        for bond in getOutput(interaction_to_list_of_tuples[interaction]):
+                            bpseq.append(bond)
+
                         # if this category has a restricted list of interactions to output
                         if len(categories[category]) == 0 or inter in categories[category]:
                             for a,b,c in interaction_to_list_of_tuples[interaction]:
                                 if isSameModelNumber(a, model):
                                     f.write("%s\t%s\t%s\t%s\n" % (a,inter,b,c))
+
+    get_bpseq(bpseq, interaction_to_list_of_tuples)
 
 def write_ebi_json_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions,chain,unit_id_to_sequence_position,modified):
     """
@@ -3056,7 +3078,7 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
     if 'basepair' in categories:
         categories['basepair'] = Leontis_Westhof_basepairs
     else:
-        categories['basepair'] = cat #annotates only categories in the input #['cWW']  # only annotate cWW, for crossing number
+        categories['basepair'] =  cat #annotates only categories in the input #['cWW']  # only annotate cWW, for crossing number mio:#
 
     # check existence of input path
     if len(inputPath) > 0 and not os.path.exists(inputPath):
