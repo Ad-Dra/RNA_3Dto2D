@@ -2891,7 +2891,7 @@ def modelFound(input_string):
 #returns true if the model number corresponds to the input
 def isSameModelNumber(a, model):
     n = a.split("|")
-    if n[1] == model:
+    if str(n[1]) == str(model):
         return True
     else: 
         return False
@@ -2901,51 +2901,155 @@ def order_bpseq(arr):
     arr.sort(key=lambda x: int(x[0]))
     return arr
 
-#add an item to the bpseq if it isn't present
-def add_triplet(arr, pair):
-    n, a = pair
+def isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, cat):
+    for category in categories.keys():
+        # loop over all interactions found in this category
+        for interaction in category_to_interactions[category]:
+            inter = interaction
+            if category == 'basepair':
+                inter = simplify_basepair(interaction)
+            # if this category has a restricted list of interactions to output
+            if len(categories[category]) == 0 or inter in categories[category]:
+                for a,b,c in interaction_to_list_of_tuples[interaction]:
+                    #if the algorithm find a bonds of the type cat it returns it
+                    if inter == cat:
+                        return True
+                    
+    return False
+
+def getTriplet(a, b):
+    #a,b format example: PDBid|modelNumber|Chain|nucleoBase|baseIndex
+    #to get a bpseq we need to chain baseIndex(a) nucleoBase(a) baseIndex(b)
+    bond = []
+
+    id1 = a.split("|")
+    #convert nucleoBase letter to a canonical one (ex: NG -> G)
+    if (len(id1[3]) > 1):
+            id1[3] = (id1[3][len(id1[3]) - 1])
+    id2 = b.split("|")
+    bond.append(id1[4])
+    bond.append(id1[3])
+    bond.append(id2[4])
+
+    return bond
+
+
+def isBaseAbsent(index, bpseq):
+    for bond in bpseq:
+        if bond[0] == index:
+            return False
+    return True
+
+def getAasString(a,b):
+    #a,b format example: PDBid|modelNumber|Chain|nucleoBase|baseIndex
+    #to get the aas we need to chain (baseIndex(a), baseIndex(b))
+    bond = []
+
+    id1 = a.split("|")
+    id2 = b.split("|")
+    bond.append(id1[4])
+    bond.append(id2[4])
+
+    return bond
+
+def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
+
+    if not isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, cat):
+        print("NO BONDS FOUND FOR THE SPECIFIED TYPE: " + str(cat))
+        return
+
+    res = []
+
+    #definizione path output
+    #se il model number è -1 significa che c'è slo un modello quindi il numero non viene incluso nel nome
+    if modelNumber == -1:
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + ".txt")
+    else:
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + "_" + modelNumber + ".txt")
     
-    found = False
-    for triplet in arr:
-        if triplet[0] == n:
-            found = True
-            break
+    with open(filename,'w') as f:
+        for category in categories.keys():
+            # loop over all interactions found in this category
+            for interaction in category_to_interactions[category]:
+                inter = interaction
+                if category == 'basepair':
+                    inter = simplify_basepair(interaction)
+                # if this category has a restricted list of interactions to output
+                if len(categories[category]) == 0 or inter in categories[category]:
+                    for a,b,c in interaction_to_list_of_tuples[interaction]:
+                        if inter == cat and isSameModelNumber(a, abs(int(modelNumber))):
+                            #print("%s\t%s\t%s\t%s\n" % (a,inter,b,c)) DEBUG
+                            #add to the file depending on the output type
+                            if outputType == "aas":
+                                res.append(getAasString(a,b))
+                            elif outputType == "bpseq":
+                                res.append(getTriplet(a,b))
+
+        sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
+        
+        if outputType == "bpseq":
+            for base in sequence:
+                if isBaseAbsent(base[0], res):
+                    res.append([base[0], base[1], 0])
+
+            res = order_bpseq(res)
+
+            for b in res:
+                f.write(b[0] + " " + b[1] + " " + b[2] + "\n")
+        elif outputType == "aas":
+            result1 = ""
+            for couple in sequence:
+                letter = couple[1]
+                result1 += str(letter)
+            f.write("Main sequence: " + result1 + "\n\n")
+            for b in res:
+                f.write("(" + b[0] +"," + b[1] + ");")
+
+def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
     
-    if not found:
-        arr.append([n, a, '0'])
+    scan = False
+    for c in cat:
+        if isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, c):
+            scan = True
+    if(not scan):
+        print("UNABLE TO FIND ANY BOND IN THE SPECIFIED CATEGORIES: " + str(cat))
+
+    res = []
+
+    #definizione path output
+    #se il model number è -1 significa che c'è slo un modello quindi il numero non viene incluso nel nome
+    if modelNumber == -1:
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + outputType + ".txt")
+    else:
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + outputType + "_" + modelNumber + ".txt")
     
-    return arr
+    print(str(cat))
 
-#this function adds the remaining nucleobases to the basepairs already in the bpseq
-def get_bpseq(bonds, interaction_to_list_of_tuples):
+    with open(filename,'w') as f:
+        for category in categories.keys():
+            # loop over all interactions found in this category
+            for interaction in category_to_interactions[category]:
+                inter = interaction
+                if category == 'basepair':
+                    inter = simplify_basepair(interaction)
+                # if this category has a restricted list of interactions to output
+                if len(categories[category]) == 0 or inter in categories[category]:
+                    for a,b,c in interaction_to_list_of_tuples[interaction]:
+                        if inter in cat:
+                            if isSameModelNumber(a, abs(int(modelNumber))):
+                                res.append(getAasString(a,b))
+                           
+        sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
+        
+        result1 = ""
+        for couple in sequence:
+            letter = couple[1]
+            result1 += str(letter)
+        f.write("Main sequence: " + result1 + "\n\n")
+        for b in res:
+            f.write("(" + b[0] +"," + b[1] + ");")
 
-    sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
-
-    for a in sequence:
-        add_triplet(bonds, a)
-
-    #also removes doubled instance in the array
-    res = order_bpseq(bonds)
-
-    noDuplicateRes = []
-
-    for bond in res:
-        if bond not in noDuplicateRes:
-            noDuplicateRes.append(bond)
-            print(str(bond[0] + " " + bond[1] + " " + bond[2])) 
-
-    #TODO debug
-    print(" ")
-    print(str(interaction_to_list_of_tuples).replace("), (", "), \n\t("))
-    print(" ")
-    print(str(noDuplicateRes).replace("], [","], \n\t[")) 
-    print(" ")
-
-
-
-    return res 
-
-def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions):
+def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations):
     """
     Write interactions according to category, and within each
     category, write by annotation.
@@ -2957,87 +3061,22 @@ def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list
 
     for model in modelFound(str(interaction_to_list_of_tuples)):
 
-        bpseq = []
+        if len(modelFound(str(interaction_to_list_of_tuples))) == 1:
+            model = -1
 
-        # loop over types of output files requested
-        for category in categories.keys():
-            if category == 'basepair': #this stops many otput files
-                if len(modelFound(str(interaction_to_list_of_tuples))) == 1:
-                    filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + category + ".txt")
-                else:
-                    filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + category + "_" + model + ".txt")
-                
-                with open(filename,'w') as f:
-                    # loop over all interactions found in this category
-                    for interaction in category_to_interactions[category]:
-                        inter = interaction
-                        if category == 'basepair':
-                            inter = simplify_basepair(interaction)
+        #se l'utente non specifica -a ne -aa (1 file per ogni legame)
+        if(not allStructure or not allAnnotations):
+            for c in cat:
+                writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, outputType) 
 
-                        # compute bpseq notation
-                        for bond in getOutput(interaction_to_list_of_tuples[interaction]):
-                            bpseq.append(bond)
-
-                        # if this category has a restricted list of interactions to output
-                        if len(categories[category]) == 0 or inter in categories[category]:
-                            for a,b,c in interaction_to_list_of_tuples[interaction]:
-                                if isSameModelNumber(a, model):
-                                    f.write("%s\t%s\t%s\t%s\n" % (a,inter,b,c))
-
-    get_bpseq(bpseq, interaction_to_list_of_tuples)
-
-def write_ebi_json_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions,chain,unit_id_to_sequence_position,modified):
-    """
-    For each chain, write interactions according to category,
-    and within each category, write by annotation.
-    Other than that, the interactions are listed in no particular order.
-    """
-
-    import json
-
-    # loop over types of output files requested
-    for category in categories.keys():
-        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + chain + "_" + category + ".json")
-
-        output = {}
-        output["pdb_id"] = pdbid
-        output["chain_id"] = chain
-        output["modified"] = modified
-
-        annotations = []
-        for interaction in category_to_interactions[category]:
-            inter = interaction
-            if category == 'basepair':
-                inter = simplify_basepair(interaction)
-            # if this category has a restricted list of interactions to output
-            if len(categories[category]) == 0 or inter in categories[category]:
-
-                for a,b,c in interaction_to_list_of_tuples[interaction]:
-                    fields1 = a.split("|")
-                    fields2 = b.split("|")
-                    if fields1[2] == chain and fields2[2] == chain:
-                        if unit_id_to_sequence_position[a] < unit_id_to_sequence_position[b]:
-                            ann = {}
-                            ann["seq_id1"]  = str(unit_id_to_sequence_position[a])
-                            ann["3d_id1"]   = fields1[4]
-                            ann["nt1"]      = fields1[3]
-                            ann["unit1"]    = fields1[3]
-                            ann["bp"]       = inter
-                            ann["seq_id2"]  = str(unit_id_to_sequence_position[b])
-                            ann["nt2"]      = fields2[3]
-                            ann["unit2"]    = fields2[3]
-                            ann["3d_id2"]   = fields2[4]
-                            ann["crossing"] = str(c)
-                            #{"seq_id1":"1","3d_id1":"13","nt1":"C","bp":"cWW","seq_id2":"71","nt2":"G","3d_id2":"83","crossing":"0"}
-
-                            annotations.append(ann)
-
-        output["annotations"] = annotations
-
-        #print(json.dumps(output))
-
-        with open(filename,'w') as f:
-            f.write(json.dumps(output))
+        #se l'utente scrive -aa (tutti i legami sullo stesso file + 1 file per ogni legame)
+        elif(allAnnotations):
+            writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
+            for c in cat:
+                writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, "aas")
+        #se l'utente scrive -a (tutti i legami sullo stesso file)
+        elif(allStructure):
+            writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
 
 def simplify_basepair(interaction):
 
@@ -3052,8 +3091,20 @@ def simplify_basepair(interaction):
 
     return inter
 
+#convert the input string so that the first letter is to lower case andd second and third letter are to upper case
+def adapt_category_format(string):
+    if len(string) != 3:
+        print("THE CATEGORY: " + string + " IS NOT RECOGNISED!")
+        sys.exit()
+    
+    first_letter = string[0].lower()
+    second_letter = string[1].upper()
+    third_letter = string[2].upper()
+    
+    return first_letter + second_letter + third_letter
+
 #=======================================================================
-def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, output_format):
+def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations):
 
     if isinstance(entry_id,str):
         entry_id = [entry_id]
@@ -3064,9 +3115,18 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
     categories = {}
 
     Leontis_Westhof_basepairs = ['cWW', 'cSS', 'cHH', 'cHS', 'cHW', 'cSH', 'cSW', 'cWH', 'cWS', 'tSS', 'tHH', 'tHS', 'tHW', 'tSH', 'tSW', 'tWH', 'tWS', 'tWW']
-
-    cat = category.split(",")
     
+    if cat == "basepair":
+        cat = Leontis_Westhof_basepairs
+    else:
+        for i in range(len(cat)):
+            cat[i] = adapt_category_format(cat[i])
+            if cat[i] not in Leontis_Westhof_basepairs:
+                print("THE CATEGORY: " + cat[i] + " IS NOT RECOGNISED!")
+                sys.exit()
+
+        print(str(cat))
+
     if category:
         for category in category.split(","):
             categories[category] = []
@@ -3078,7 +3138,7 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
     if 'basepair' in categories:
         categories['basepair'] = Leontis_Westhof_basepairs
     else:
-        categories['basepair'] =  cat #annotates only categories in the input #['cWW']  # only annotate cWW, for crossing number mio:#
+        categories['basepair'] = cat # ['cWW']  # only annotate cWW, for crossing number 
 
     # check existence of input path
     if len(inputPath) > 0 and not os.path.exists(inputPath):
@@ -3149,37 +3209,8 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
         timerData = myTimer("Recording interactions",timerData)
         print("  Recording interactions in %s" % outputNAPairwiseInteractions)
 
-        if output_format == 'txt':
-            write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions)
-        elif output_format == 'ebi_json':
-            if chains:
-                bases = structure.residues(chain = chains, type = ["RNA linking","DNA linking"])  # load all RNA/DNA nucleotides
-            else:
-                bases = structure.residues(type = ["RNA linking","DNA linking"])  # load all RNA/DNA nucleotides
-
-            chain_unit_id_to_sequence_position = {}
-            chain_modified = {}
-            for base in bases:
-                chain = base.chain
-                if not chain in chain_unit_id_to_sequence_position:
-                    chain_unit_id_to_sequence_position[chain] = {}
-                    chain_modified[chain] = []
-                chain_unit_id_to_sequence_position[chain][base.unit_id()] = base.index
-
-                fields = base.unit_id().split('|')
-                if not fields[3] in ['A','C','G','U','DA','DC','DG','DT']:
-                    modif = {}
-                    modif['seq_id'] = str(base.index)
-                    modif['nt1'] = fields[3]
-                    modif['unit1'] = fields[3]
-                    modif['3d_id'] = fields[4]
-                    chain_modified[chain].append(modif)
-
-            for chain in list(chain_unit_id_to_sequence_position.keys()):
-                write_ebi_json_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories, category_to_interactions, chain, chain_unit_id_to_sequence_position[chain],chain_modified[chain])
-
-        else:
-            print('Output format %s not recognized' % output_format)
+        #write txt output
+        write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations)
 
     myTimer("summary",timerData)
 
@@ -3202,11 +3233,14 @@ if __name__=="__main__":
     # allow user to specify input and output paths
     parser = argparse.ArgumentParser()
     parser.add_argument('PDBfiles', type=str, nargs='+', help='.cif filename(s)')
-    parser.add_argument('-o', "--output", help="Output Location of Pairwise Interactions")
+    parser.add_argument('-ou', "--output", help="Output Location of Pairwise Interactions")
     parser.add_argument('-i', "--input", help='Input Path')
-    parser.add_argument('-f', "--format", help='Output format (txt,ebi_json)')
     parser.add_argument("--chain", help='Chain or chains separated by commas, no spaces; only for one PDB file')
-    parser.add_argument('-c', "--category", help='Interaction category or categories for the output')
+    # aggiunte:
+    parser.add_argument('-l', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
+    parser.add_argument('-o', "--outputFormat", help="Enstablish the type of output format (aas, bpseq)")
+    parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
+    parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
 
     problem = False
     args = parser.parse_args()
@@ -3224,11 +3258,6 @@ if __name__=="__main__":
         if not outputNAPairwiseInteractions:
             outputNAPairwiseInteractions = ""
 
-    if args.format:
-        outputFormat = args.format
-    else:
-        outputFormat = 'txt'
-
     if args.chain:
         chain_id = args.chain
     else: 
@@ -3236,10 +3265,29 @@ if __name__=="__main__":
 
     if args.category:
         category = args.category
+        cat = args.category.split(",")
     else: 
         category = 'basepair'
+        cat = "basepair"
+
+    if args.outputFormat:
+        print (args.outputFormat)
+        if args.outputFormat.lower() != "aas" and args.outputFormat.lower() != "bpseq":
+            print ("OUTPUT FORMAT IS NOT VALID (only accept aas or bpseq)")
+            sys.exit()
+        else:
+            outputType = args.outputFormat
+    else:
+        outputType = "bpseq"
+
+    allStructure = args.a
+    allAnnotations = args.aa
 
     entry_id = args.PDBfiles
 
-    generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, outputFormat)
+    # qui analizzare input path e in caso è una cartella eseguire generatePairwiseAnnotation() con gli stessi input per ogni file .cif nella cartella
+    # io farei che se nell'input il pbdID.cif non è specificato, utilizza inputPath e fa un for su ogni file .cif che trova li dentro
+    # sarebbe da fare pure con i .pbd ma non sono mai riuscito a farlo funzionare con i .pbd quindi boh io lascerei perdere
+
+    generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
 
