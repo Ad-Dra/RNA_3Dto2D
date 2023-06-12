@@ -2981,9 +2981,11 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
                             #print("%s\t%s\t%s\t%s\n" % (a,inter,b,c)) DEBUG
                             #add to the file depending on the output type
                             if outputType == "aas":
-                                res.append(getAasString(a,b))
+                                if getAasString(a,b) not in res:
+                                    res.append(getAasString(a,b))
                             elif outputType == "bpseq":
-                                res.append(getTriplet(a,b))
+                                if getTriplet(a,b) not in res:
+                                    res.append(getTriplet(a,b))
 
         sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
         
@@ -2995,7 +2997,7 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
             res = order_bpseq(res)
 
             for b in res:
-                f.write(b[0] + " " + b[1] + " " + b[2] + "\n")
+                f.write(str(b[0]) + " " + str(b[1]) + " " + str(b[2]) + "\n")
         elif outputType == "aas":
             result1 = ""
             for couple in sequence:
@@ -3003,7 +3005,7 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
                 result1 += str(letter)
             f.write("Main sequence: " + result1 + "\n\n")
             for b in res:
-                f.write("(" + b[0] +"," + b[1] + ");")
+                f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
 def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
     
@@ -3037,46 +3039,49 @@ def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of
                     for a,b,c in interaction_to_list_of_tuples[interaction]:
                         if inter in cat:
                             if isSameModelNumber(a, abs(int(modelNumber))):
-                                res.append(getAasString(a,b))
+                                if getAasString(a,b) not in res:
+                                    res.append(getAasString(a,b))
                            
         sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
         
+        
+
         result1 = ""
         for couple in sequence:
             letter = couple[1]
             result1 += str(letter)
         f.write("Main sequence: " + result1 + "\n\n")
         for b in res:
-            f.write("(" + b[0] +"," + b[1] + ");")
+            f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
-def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations):
+def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations, mn):
     """
     Write interactions according to category, and within each
     category, write by annotation.
     Other than that, the interactions are listed in no particular order.
     """
 
-    #print whole structure found?
-    #print(str(interaction_to_list_of_tuples).replace("), (","), \n("))
+    if (mn == []):
+        mn = modelFound(str(interaction_to_list_of_tuples))
 
     for model in modelFound(str(interaction_to_list_of_tuples)):
+        if (model in mn):
+            if len(modelFound(str(interaction_to_list_of_tuples))) == 1:
+                model = -1
 
-        if len(modelFound(str(interaction_to_list_of_tuples))) == 1:
-            model = -1
+            #se l'utente non specifica -a ne -aa (1 file per ogni legame)
+            if(not allStructure and not allAnnotations):
+                for c in cat:
+                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, outputType) 
 
-        #se l'utente non specifica -a ne -aa (1 file per ogni legame)
-        if(not allStructure or not allAnnotations):
-            for c in cat:
-                writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, outputType) 
-
-        #se l'utente scrive -aa (tutti i legami sullo stesso file + 1 file per ogni legame)
-        elif(allAnnotations):
-            writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
-            for c in cat:
-                writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, "aas")
-        #se l'utente scrive -a (tutti i legami sullo stesso file)
-        elif(allStructure):
-            writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
+            #se l'utente scrive -aa (tutti i legami sullo stesso file + 1 file per ogni legame)
+            elif(allAnnotations):
+                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
+                for c in cat:
+                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, "aas")
+            #se l'utente scrive -a (tutti i legami sullo stesso file)
+            elif(allStructure):
+                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
 
 def simplify_basepair(interaction):
 
@@ -3104,7 +3109,7 @@ def adapt_category_format(string):
     return first_letter + second_letter + third_letter
 
 #=======================================================================
-def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations):
+def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn):
 
     if isinstance(entry_id,str):
         entry_id = [entry_id]
@@ -3210,7 +3215,7 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
         print("  Recording interactions in %s" % outputNAPairwiseInteractions)
 
         #write txt output
-        write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations)
+        write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations, mn)
 
     myTimer("summary",timerData)
 
@@ -3232,7 +3237,7 @@ if __name__=="__main__":
 
     # allow user to specify input and output paths
     parser = argparse.ArgumentParser()
-    parser.add_argument('PDBfiles', type=str, nargs='+', help='.cif filename(s)')
+    parser.add_argument('-p', '--PDBfiles', type=str, nargs='+', help='.cif filename(s)')
     parser.add_argument('-ou', "--output", help="Output Location of Pairwise Interactions")
     parser.add_argument('-i', "--input", help='Input Path')
     parser.add_argument("--chain", help='Chain or chains separated by commas, no spaces; only for one PDB file')
@@ -3241,6 +3246,7 @@ if __name__=="__main__":
     parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas, bpseq)")
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
+    parser.add_argument('-mn', "--modelNumber", help="Writes only output in model number specified (mn1,mn2,mn3,mn4,...)")
 
     problem = False
     args = parser.parse_args()
@@ -3270,6 +3276,11 @@ if __name__=="__main__":
         category = 'basepair'
         cat = "basepair"
 
+    if args.modelNumber:
+        mn = args.modelNumber.split(",")
+    else:
+        mn = []
+
     if args.outputFormat:
         print (args.outputFormat)
         if args.outputFormat.lower() != "aas" and args.outputFormat.lower() != "bpseq":
@@ -3283,21 +3294,17 @@ if __name__=="__main__":
     allStructure = args.a
     allAnnotations = args.aa
 
-    entry_id = args.PDBfiles
-
-    # qui analizzare input path e in caso è una cartella eseguire generatePairwiseAnnotation() con gli stessi input per ogni file .cif nella cartella
-    # io farei che se nell'input il pbdID.cif non è specificato, utilizza inputPath e fa un for su ogni file .cif che trova li dentro
-    # sarebbe da fare pure con i .pbd ma non sono mai riuscito a farlo funzionare con i .pbd quindi boh io lascerei perdere
-
-
-    if os.path.isdir(inputPath):
-        # If it's a folder, execute for every .cif (and .pdb?)
-        directory = os.fsencode(inputPath)
-    
-        for file in os.listdir(directory):
-            filename = os.fsdecode(file)
-            if filename.endswith(".cif") or filename.endswith(".pdb"): 
-                # input just works with .cif and .pdb
-                generatePairwiseAnnotation(entry_id, chain_id, filename, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
+    if args.PDBfiles:
+        entry_id = args.PDBfiles
+        generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn)
     else:
-        generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
+        if os.path.isdir(inputPath):
+            # If it's a folder, execute for every .cif (and .pdb?)
+            directory = os.fsencode(inputPath)
+        
+            for file in os.listdir(directory):
+                filename = os.fsdecode(file)
+                # input just works with .cif and .pdb
+                if filename.endswith(".cif") or filename.endswith(".pdb"): 
+                    entry_id = filename
+                    generatePairwiseAnnotation(entry_id, chain_id, filename, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn)
