@@ -3238,7 +3238,7 @@ if __name__=="__main__":
     parser.add_argument("--chain", help='Chain or chains separated by commas, no spaces; only for one PDB file')
     # aggiunte:
     parser.add_argument('-l', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
-    parser.add_argument('-o', "--outputFormat", help="Enstablish the type of output format (aas, bpseq)")
+    parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas, bpseq)")
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
 
@@ -3289,5 +3289,15 @@ if __name__=="__main__":
     # io farei che se nell'input il pbdID.cif non è specificato, utilizza inputPath e fa un for su ogni file .cif che trova li dentro
     # sarebbe da fare pure con i .pbd ma non sono mai riuscito a farlo funzionare con i .pbd quindi boh io lascerei perdere
 
-    generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
 
+    if os.path.isdir(inputPath):
+        # If it's a folder, execute for every .cif (and .pdb?)
+        directory = os.fsencode(inputPath)
+    
+        for file in os.listdir(directory):
+            filename = os.fsdecode(file)
+            if filename.endswith(".cif") or filename.endswith(".pdb"): 
+                # input just works with .cif and .pdb
+                generatePairwiseAnnotation(entry_id, chain_id, filename, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
+    else:
+        generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations)
