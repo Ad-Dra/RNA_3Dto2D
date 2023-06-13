@@ -2901,6 +2901,7 @@ def order_bpseq(arr):
     arr.sort(key=lambda x: int(x[0]))
     return arr
 
+#remove occurences on bond
 def remove_double_occurrences(arr):
     unique_couples = []
     for couple in arr:
