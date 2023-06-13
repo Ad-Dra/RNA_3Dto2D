@@ -2899,7 +2899,6 @@ def isSameModelNumber(a, model):
 #this sorts the nucleobases in the bpseq array
 def order_bpseq(arr):
     arr.sort(key=lambda x: int(x[0]))
-    remove_double_occurrences(arr)
     return arr
 
 def remove_double_occurrences(arr):
@@ -3007,6 +3006,7 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
             for b in res:
                 f.write(str(b[0]) + " " + str(b[1]) + " " + str(b[2]) + "\n")
         elif outputType == "aas":
+            res = remove_double_occurrences(res)
             result1 = ""
             for couple in sequence:
                 letter = couple[1]
@@ -3054,16 +3054,18 @@ def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of
                                     res.append(getAasString(a,b))
                            
         sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
-        
-        
+        res = remove_double_occurrences(res)
 
         result1 = ""
         for couple in sequence:
             letter = couple[1]
             result1 += str(letter)
-        f.write("Main sequence: " + result1 + "\n\n")
+        f.write(result1 + "\n\n")
         for b in res:
-            f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
+                if b==res[len(res)-1]:
+                    f.write("(" + str(b[0]) +"," + str(b[1]) + ")")
+                else:
+                    f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
 def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations, mn):
     """
