@@ -2899,7 +2899,15 @@ def isSameModelNumber(a, model):
 #this sorts the nucleobases in the bpseq array
 def order_bpseq(arr):
     arr.sort(key=lambda x: int(x[0]))
+    remove_double_occurrences(arr)
     return arr
+
+def remove_double_occurrences(arr):
+    unique_couples = []
+    for couple in arr:
+        if couple not in unique_couples and couple[::-1] not in unique_couples:
+            unique_couples.append(couple)
+    return unique_couples
 
 def isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, cat):
     for category in categories.keys():
@@ -3003,9 +3011,12 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
             for couple in sequence:
                 letter = couple[1]
                 result1 += str(letter)
-            f.write("Main sequence: " + result1 + "\n\n")
+            f.write(result1 + "\n\n")
             for b in res:
-                f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
+                if b==res[len(res)-1]:
+                    f.write("(" + str(b[0]) +"," + str(b[1]) + ")")
+                else:
+                    f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
 def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
     
