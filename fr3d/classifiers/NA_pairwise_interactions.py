@@ -2921,8 +2921,7 @@ def isPresent(interaction_to_list_of_tuples,categories,category_to_interactions,
                 for a,b,c in interaction_to_list_of_tuples[interaction]:
                     #if the algorithm find a bonds of the type cat it returns it
                     if inter == cat:
-                        return True
-                    
+                        return True          
     return False
 
 def getTriplet(a, b):
@@ -2961,7 +2960,6 @@ def getAasString(a,b):
     return bond
 
 def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
-
     if not isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, cat):
         print("NO BONDS FOUND FOR THE SPECIFIED TYPE: " + str(cat))
         return
@@ -3020,7 +3018,6 @@ def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_li
                     f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
 def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
-    
     scan = False
     for c in cat:
         if isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, c):
