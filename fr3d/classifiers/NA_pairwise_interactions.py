@@ -26,6 +26,7 @@ import csv
 from datetime import datetime
 import gzip
 import math
+
 import numpy as np
 import pickle
 import sys
@@ -34,6 +35,7 @@ from os import path
 from time import time
 import urllib
 import re
+from PIL import Image, ImageDraw, ImageFont
 
 if sys.version_info[0] > 2:
     from urllib import request
@@ -2804,6 +2806,158 @@ def write_unit_data_file(PDB,unit_data_path,structure):
 
             print("  Wrote unit data file %s" % filename)
 
+def drawPngFromAas(res, sequence, filename):
+    return
+
+# pip install Pillow per la libreria
+
+#Libreria rna tools????
+
+def drawPngFromBpseq(bpseq, filename):
+    print("drawing png...")
+    n = len(bpseq)
+    start_number = int(bpseq[0][0])
+    char_list = []
+    for b in bpseq:
+        char_list.append(b[1])
+    connections = [[1,2],[5,8],[2,18]]
+    print(n , " bases found")
+    width = 120 + (n - 1) * 60
+    height = 120 + (n - 1) * 60 
+
+    # Crea una nuova immagine
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+
+    y = height // 2
+    start_x = 60
+    end_x = width - 60
+
+    # Linea orizzontale
+    line_color = (0, 0, 0) 
+    draw.line([(start_x, y), (end_x, y)], fill=line_color, width=2)
+
+    # Calcola la distanza fra i cerchi
+    gap = (end_x - start_x) / (n - 1)
+
+    # font e dimensioni del testo
+    font = ImageFont.truetype("arial.ttf", 14)
+
+    circle_radius = 10
+    circle_color = (255, 0, 0)  # RGB rosso
+    text_color = (0, 0, 0)  # RGB nero
+    for i in range(n):
+        center_x = start_x + i * gap
+        center = (int(center_x), y)
+
+        # Disegna i cerchi per le basi
+        draw.ellipse([(center[0] - circle_radius, center[1] - circle_radius),
+                      (center[0] + circle_radius, center[1] + circle_radius)],
+                     fill=circle_color)
+
+        # Scrivi i numeri
+        number = start_number + i
+        text = str(number)
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        text_x = center[0] - text_width // 2
+        text_y = center[1] - text_height // 2
+        draw.text((text_x, text_y), text, font=font, fill=text_color)
+
+        # Scrivi le lettere
+        char = char_list[i]
+        char_bbox = draw.textbbox((0, 0), char, font=font)
+        char_width = char_bbox[2] - char_bbox[0]
+        char_x = center[0] - char_width // 2
+        char_y = center[1] + circle_radius + 5  # 5-pixel spacing
+        draw.text((char_x, char_y), char, font=font, fill=text_color)
+
+    # Archi
+    arc_color = (0, 0, 255)  # RGB colore blu
+    for connection in connections:
+        b1, b2 = connection
+        if start_number <= b1 <= start_number + n - 1 and start_number <= b2 <= start_number + n - 1:
+            start_index = b1 - start_number
+            end_index = b2 - start_number
+            start_x = start_x + start_index * gap
+            end_x = start_x + end_index * gap
+
+            # Calcola il centro del semicerchio
+            arc_center_x = (start_x + end_x) / 2
+            arc_center_y = y + circle_radius
+
+            # Calcola il raggio del cerchio
+            arc_radius = (end_x - start_x) / 2
+
+            # Disegna il semicerchio
+            start_angle = 0
+            end_angle = 180
+            draw.arc([(arc_center_x - arc_radius, arc_center_y - arc_radius),
+                      (arc_center_x + arc_radius, arc_center_y + arc_radius)],
+                     start=start_angle, end=end_angle, fill=arc_color)
+
+    image.save(filename, "PNG")
+
+def writeTkzFromBpseq(bpseq, filename):
+
+    res = f"\\begin{{tikzpicture}}\n\t\\begin{{pgfonlayer}}{{nodelayer}}\n"
+
+    i = 0
+    si = bpseq[0][0]
+    li = bpseq[-1][0]
+    for n1,b,n2 in bpseq:
+        res += f"\t\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
+        res += f"\t\t\\node [style=none] ({n1}a) at ({i}, -1) {{{b}}};\n"
+        res += f"\t\t\\node [style=none] ({n1}b) at ({i}, -2) {{{n1}}};\n"
+        i = i+1
+
+    res += f"\t\end{{pgfonlayer}}\t\n\\begin{{pgfonlayer}}{{edgelayer}}\n\t\t\draw ({si}.center) to ({li}.center);\n"
+    temp = []
+
+    for n1,b,n2 in bpseq:
+        if(int(n2) != 0 and n1 not in temp):
+            temp.append(n2)
+            if n2 > n1:
+                res += f"\t\t\draw [bend left=90, looseness=2.00] ({n1}.center) to ({n2}.center);\n"
+            else:
+                res += f"\t\t\draw [bend left=90, looseness=2.00] ({n2}.center) to ({n1}.center);\n"
+
+    res += f"\t\end{{pgfonlayer}}\n\end{{tikzpicture}}"
+
+    with open(filename,'w') as f:
+        f.write(res)
+
+    return
+        
+def writeTkzFromAas(aas, sequence, filename):
+
+    res = f"\\begin{{tikzpicture}}\n\t\\begin{{pgfonlayer}}{{nodelayer}}\n"
+
+    i = 0
+    si = sequence[0][0]
+    li = sequence[-1][0]
+    for n1, b in sequence:
+        res += f"\t\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
+        res += f"\t\t\\node [style=none] ({n1}a) at ({i}, -1) {{{b}}};\n"
+        res += f"\t\t\\node [style=none] ({n1}b) at ({i}, -2) {{{n1}}};\n"
+        i = i+1
+
+    res += f"\t\end{{pgfonlayer}}\t\n\\begin{{pgfonlayer}}{{edgelayer}}\n\t\t\draw ({si}.center) to ({li}.center);\n"
+
+    for a,b in aas:
+        if(int(a) < int(b)):  
+            res += f"\t\t\draw [bend left=90, looseness=2.00] ({a}.center) to ({b}.center);\n"
+        else:
+            res += f"\t\t\draw [bend left=90, looseness=2.00] ({b}.center) to ({a}.center);\n"
+
+    res += f"\t\end{{pgfonlayer}}\n\end{{tikzpicture}}"
+
+    with open(filename,'w') as f:
+        f.write(res)
+
+    return
+
 #used to compute sequence
 def extract_triplets(input_string):
 
@@ -2901,7 +3055,6 @@ def order_bpseq(arr):
     arr.sort(key=lambda x: int(x[0]))
     return arr
 
-#remove occurences on bond
 def remove_double_occurrences(arr):
     unique_couples = []
     for couple in arr:
@@ -2921,7 +3074,8 @@ def isPresent(interaction_to_list_of_tuples,categories,category_to_interactions,
                 for a,b,c in interaction_to_list_of_tuples[interaction]:
                     #if the algorithm find a bonds of the type cat it returns it
                     if inter == cat:
-                        return True          
+                        return True
+                    
     return False
 
 def getTriplet(a, b):
@@ -2947,77 +3101,112 @@ def isBaseAbsent(index, bpseq):
             return False
     return True
 
-def getAasString(a,b):
+def getAasString(a,b, index):
     #a,b format example: PDBid|modelNumber|Chain|nucleoBase|baseIndex
     #to get the aas we need to chain (baseIndex(a), baseIndex(b))
     bond = []
 
     id1 = a.split("|")
     id2 = b.split("|")
-    bond.append(id1[4])
-    bond.append(id2[4])
+    bond.append(str(int(id1[4]) - int(index) + 1))
+    bond.append(str(int(id2[4]) - int(index) + 1))
 
     return bond
 
-def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
+def writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, opt):
+
     if not isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, cat):
         print("NO BONDS FOUND FOR THE SPECIFIED TYPE: " + str(cat))
         return
 
-    res = []
+    isPNG = False
+    isTKZ = False
+    flagTKZDone = False
 
-    #definizione path output
-    #se il model number è -1 significa che c'è slo un modello quindi il numero non viene incluso nel nome
-    if modelNumber == -1:
-        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + ".txt")
-    else:
-        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + "_" + modelNumber + ".txt")
-    
-    with open(filename,'w') as f:
-        for category in categories.keys():
-            # loop over all interactions found in this category
-            for interaction in category_to_interactions[category]:
-                inter = interaction
-                if category == 'basepair':
-                    inter = simplify_basepair(interaction)
-                # if this category has a restricted list of interactions to output
-                if len(categories[category]) == 0 or inter in categories[category]:
-                    for a,b,c in interaction_to_list_of_tuples[interaction]:
-                        if inter == cat and isSameModelNumber(a, abs(int(modelNumber))):
-                            #print("%s\t%s\t%s\t%s\n" % (a,inter,b,c)) DEBUG
-                            #add to the file depending on the output type
-                            if outputType == "aas":
-                                if getAasString(a,b) not in res:
-                                    res.append(getAasString(a,b))
-                            elif outputType == "bpseq":
-                                if getTriplet(a,b) not in res:
-                                    res.append(getTriplet(a,b))
+    if("tkz" in opt):
+        print("write TKZZZZZZ")
+        if modelNumber == -1:
+            tkzname = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_tkz.txt")
+        else:
+            tkzname = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_tkz_" + modelNumber + ".txt")
+        isTKZ = True
 
-        sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
+    if("png" in opt):
+        if modelNumber == -1:
+            pngname = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + ".png")
+        else:
+            pngname = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + modelNumber + ".png")
+        isPNG = True
+
+    sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples))) 
+    baseIndex = sequence[0][0]
+
+    for outputType in opt:
+
+        res = []
+
+        if outputType == "png" or outputType == "tkz": #se po fa meglio...
+            break
+        #definizione path output
+        #se il model number è -1 significa che c'è slo un modello quindi il numero non viene incluso nel nome
+        if modelNumber == -1:
+            filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + ".txt")
+        else:
+            filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + cat + "_" + outputType + "_" + modelNumber + ".txt")
         
-        if outputType == "bpseq":
-            for base in sequence:
-                if isBaseAbsent(base[0], res):
-                    res.append([base[0], base[1], 0])
+        with open(filename,'w') as f:
+            for category in categories.keys():
+                # loop over all interactions found in this category
+                for interaction in category_to_interactions[category]:
+                    inter = interaction
+                    if category == 'basepair':
+                        inter = simplify_basepair(interaction)
+                    # if this category has a restricted list of interactions to output
+                    if len(categories[category]) == 0 or inter in categories[category]:
+                        for a,b,c in interaction_to_list_of_tuples[interaction]:
+                            if inter == cat and isSameModelNumber(a, abs(int(modelNumber))):
+                                #print("%s\t%s\t%s\t%s\n" % (a,inter,b,c)) DEBUG
+                                #add to the file depending on the output type
+                                if outputType == "aas":
+                                    if getAasString(a,b, baseIndex) not in res:
+                                        res.append(getAasString(a,b,baseIndex))
+                                elif outputType == "bpseq":
+                                    if getTriplet(a,b) not in res:
+                                        res.append(getTriplet(a,b))
 
-            res = order_bpseq(res)
+            if outputType == "bpseq":
+                for base in sequence:
+                    if isBaseAbsent(base[0], res):
+                        res.append([base[0], base[1], 0])
+                res = order_bpseq(res)
+                for b in res:
+                    f.write(str(b[0]) + " " + str(b[1]) + " " + str(b[2]) + "\n")
+                if isTKZ:
+                    flagTKZDone = True
+                    writeTkzFromBpseq(res, tkzname)
+                if isPNG:
+                    drawPngFromBpseq(res, pngname)
 
-            for b in res:
-                f.write(str(b[0]) + " " + str(b[1]) + " " + str(b[2]) + "\n")
-        elif outputType == "aas":
-            res = remove_double_occurrences(res)
-            result1 = ""
-            for couple in sequence:
-                letter = couple[1]
-                result1 += str(letter)
-            f.write(result1 + "\n\n")
-            for b in res:
-                if b==res[len(res)-1]:
-                    f.write("(" + str(b[0]) +"," + str(b[1]) + ")")
-                else:
-                    f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
+            elif outputType == "aas":
+                res = remove_double_occurrences(res)
+                result1 = ""
+                for couple in sequence:
+                    letter = couple[1]
+                    result1 += str(letter)
+                f.write(result1 + "\n\n")
+                for b in res:
+                    if b==res[len(res)-1]:
+                        f.write("(" + str(b[0]) +"," + str(b[1]) + ")")
+                    else:
+                        f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
+                if isTKZ and not flagTKZDone:
+                    writeTkzFromAas(res, sequence, tkzname)
+                if isPNG:
+                    drawPngFromAas(res, sequence, pngname)
 
-def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, outputType):
+
+def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, modelNumber, opt):
+    
     scan = False
     for c in cat:
         if isPresent(interaction_to_list_of_tuples,categories,category_to_interactions, c):
@@ -3027,14 +3216,31 @@ def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of
 
     res = []
 
+    isPNG = False
+    isTKZ = False
+
+    if("tkz" in opt):
+        if modelNumber == -1:
+            tkzname = os.path.join(outputNAPairwiseInteractions,pdbid + "_tkz.txt")
+        else:
+            tkzname = os.path.join(outputNAPairwiseInteractions,pdbid + "_tkz_" + modelNumber + ".txt")
+        isTKZ = True
+    if("png" in opt):
+        if modelNumber == -1:
+            pngname = os.path.join(outputNAPairwiseInteractions,pdbid + ".png")
+        else:
+            pngname = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + modelNumber + ".png")
+        isPNG = True
+
+    sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples))) 
+    baseIndex = sequence[0][0]
+
     #definizione path output
     #se il model number è -1 significa che c'è slo un modello quindi il numero non viene incluso nel nome
     if modelNumber == -1:
-        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + outputType + ".txt")
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_aas.txt")
     else:
-        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_" + outputType + "_" + modelNumber + ".txt")
-    
-    print(str(cat))
+        filename = os.path.join(outputNAPairwiseInteractions,pdbid + "_aas_" + modelNumber + ".txt")
 
     with open(filename,'w') as f:
         for category in categories.keys():
@@ -3049,15 +3255,13 @@ def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of
                         if inter in cat:
                             if isSameModelNumber(a, abs(int(modelNumber))):
                                 if getAasString(a,b) not in res:
-                                    res.append(getAasString(a,b))
-                           
-        sequence = compute_sequence(extract_triplets(str(interaction_to_list_of_tuples)))
+                                    res.append(getAasString(a,b,baseIndex))
+                        
         res = remove_double_occurrences(res)
 
         result1 = ""
         for couple in sequence:
-            letter = couple[1]
-            result1 += str(letter)
+            result1 += str(couple[1])
         f.write(result1 + "\n\n")
         for b in res:
                 if b==res[len(res)-1]:
@@ -3065,34 +3269,42 @@ def writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of
                 else:
                     f.write("(" + str(b[0]) +"," + str(b[1]) + ");")
 
-def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations, mn):
+        if isTKZ:
+            writeTkzFromAas(res, sequence, tkzname)
+
+        if isPNG:
+            drawPngFromAas(res, sequence, pngname)
+
+def write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, opt, allStructure, allAnnotations, mn):
     """
     Write interactions according to category, and within each
     category, write by annotation.
     Other than that, the interactions are listed in no particular order.
     """
 
-    if (mn == []):
-        mn = modelFound(str(interaction_to_list_of_tuples))
+    models = modelFound(str(interaction_to_list_of_tuples))
 
-    for model in modelFound(str(interaction_to_list_of_tuples)):
+    if (mn == []):
+        mn = models
+
+    for model in models:
         if (model in mn):
-            if len(modelFound(str(interaction_to_list_of_tuples))) == 1:
+            if len(models) == 1:
                 model = -1
 
             #se l'utente non specifica -a ne -aa (1 file per ogni legame)
             if(not allStructure and not allAnnotations):
                 for c in cat:
-                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, outputType) 
+                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, opt) 
 
             #se l'utente scrive -aa (tutti i legami sullo stesso file + 1 file per ogni legame)
             elif(allAnnotations):
-                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
+                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, opt)
                 for c in cat:
-                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, "aas")
+                    writeSingleCategoryFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, c, model, opt)
             #se l'utente scrive -a (tutti i legami sullo stesso file)
             elif(allStructure):
-                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, "aas") #si può fare solo per formato aas
+                writeUniversalFile(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, model, opt)
 
 def simplify_basepair(interaction):
 
@@ -3120,7 +3332,7 @@ def adapt_category_format(string):
     return first_letter + second_letter + third_letter
 
 #=======================================================================
-def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn):
+def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, opt, allStructure, allAnnotations, mn):
 
     if isinstance(entry_id,str):
         entry_id = [entry_id]
@@ -3226,7 +3438,7 @@ def generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseIn
         print("  Recording interactions in %s" % outputNAPairwiseInteractions)
 
         #write txt output
-        write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, outputType, allStructure, allAnnotations, mn)
+        write_txt_output_file(outputNAPairwiseInteractions,pdbid,interaction_to_list_of_tuples,categories,category_to_interactions, cat, opt, allStructure, allAnnotations, mn)
 
     myTimer("summary",timerData)
 
@@ -3254,7 +3466,7 @@ if __name__=="__main__":
     parser.add_argument("--chain", help='Chain or chains separated by commas, no spaces; only for one PDB file')
     # aggiunte:
     parser.add_argument('-l', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
-    parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas, bpseq)")
+    parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas,bpseq,tkz,png)")
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
     parser.add_argument('-mn', "--modelNumber", help="Writes only output in model number specified (mn1,mn2,mn3,mn4,...)")
@@ -3293,21 +3505,21 @@ if __name__=="__main__":
         mn = []
 
     if args.outputFormat:
-        print (args.outputFormat)
-        if args.outputFormat.lower() != "aas" and args.outputFormat.lower() != "bpseq":
-            print ("OUTPUT FORMAT IS NOT VALID (only accept aas or bpseq)")
-            sys.exit()
-        else:
-            outputType = args.outputFormat
+        opt = args.outputFormat.split(",")
     else:
-        outputType = "bpseq"
+        opt = "bpseq"
+
+    for outputType in opt:
+        if(outputType != "aas" and outputType != "bpseq" and outputType != "tkz" and outputType != "png"):
+            print ("OUTPUT FORMAT IS NOT VALID: " , outputType)
+            sys.exit()
 
     allStructure = args.a
     allAnnotations = args.aa
 
     if args.PDBfiles:
         entry_id = args.PDBfiles
-        generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn)
+        generatePairwiseAnnotation(entry_id, chain_id, inputPath, outputNAPairwiseInteractions, category, cat, opt, allStructure, allAnnotations, mn)
     else:
         if os.path.isdir(inputPath):
             # If it's a folder, execute for every .cif (and .pdb?)
@@ -3318,4 +3530,4 @@ if __name__=="__main__":
                 # input just works with .cif and .pdb
                 if filename.endswith(".cif") or filename.endswith(".pdb"): 
                     entry_id = filename
-                    generatePairwiseAnnotation(entry_id, chain_id, filename, outputNAPairwiseInteractions, category, cat, outputType, allStructure, allAnnotations, mn)
+                    generatePairwiseAnnotation(entry_id, chain_id, filename, outputNAPairwiseInteractions, category, cat, opt, allStructure, allAnnotations, mn)
