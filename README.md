@@ -1,21 +1,25 @@
 # RNA Python - FR3D
 
-Our custom version of FR3D with some changes to the output formats
+This repository contains our customized version of FR3D with modifications made to the input and output formats.
 
-[FR3D](https://www.bgsu.edu/research/rna/software/fr3d.html) stands for "Find RNA 3D" and is commonly pronounced "Fred". FR3D enables searching and annotating RNA 3D structures and supports the [mmCIF](https://mmcif.wwpdb.org) format.
+## Overview
 
-Originally [written in Matlab](https://github.com/BGSU-RNA/FR3D), this repository is a re-implementation of FR3D in Python. FR3D and FR3D Python are developed by the [BGSU RNA Bioinformatics group](http://rna.bgsu.edu).
+FR3D: short for "Find RNA 3D," is a powerful tool used for searching and annotating RNA 3D structures. It is often referred to as "Fred" for convenience. FR3D supports the mmCIF format and was initially implemented in Matlab, then re-implemented in python by the BGSU RNA Bioinformatics group.
+
+In this repository, we present a modified version of FR3D-Python, providing the same functionality with added functionalities. Our version offers enhanced flexibility in determining the secondary structure of a 3D RNA chain. Specifically, it allows users to specify the type of bonds they wish to display in the output 2D structure. By utilizing this tool, users can obtain the structure in bpseq, aas, or even graphical representations of the arc diagram such as png or tkz (compatible with LaTeX).
+
+Additionally, we have included a tool called `2dToTkz.py` that allows the conversion from aas or bpseq formats to a tkz file, further enhancing the versatility of the output options (more about this at the end of this document).
 
 ### Understanding the output
 
-The program `NA_pairwise_interactions.py` generates tab-separated files called `<pdb_id><bondType><outputFormat>_<modelNumber>.txt` that list basepair interactions between pairs of nucleotides (an RNA 3D structure can contain 0 or more basepairs). The output format can be chosen between "bpseq" and "aas".
+The program `NA_pairwise_interactions.py` generates tab-separated files called `<pdb_id><bondType>_<outputFormat>_<modelNumber>.txt` that list basepair interactions between pairs of nucleotides (an RNA 3D structure can contain 0 or more basepairs). The output format can be chosen between "bpseq", "aas", "tkz" or "png" (last 2 for a graphical representations of the arc diagram).
 
-## Installation 
+## Getting Started
 
 ### Clone RNA Python - FR3D
 
 ```
-git clone "ourReposLink"
+git clone https://github.com/draibineAdnane/RnaPython.git
 cd RnaPython
 python setup.py install
 ```
@@ -100,25 +104,28 @@ python NA_pairwise_interactions.py -p <pdb_id> -l cWW,tHS,tSS
 
 ### -o (--outputFormat) 
 
-allows to filter in the output the type of interaction that you want to annotate  ("bpseq" or "aas")
-if this is omitted the output format is set to bpseq, for example
+with this option you can decide the output format, write after -o all the formats that you wish to be outputted separeted by comma ("bpseq", "aas" or for arc diagram "png", "tkz")
+if this is omitted the output format is set to bpseq, 
+example of output formats:
 
 ```
-python NA_pairwise_interactions.py -p <pdb_id> -o aas
+python NA_pairwise_interactions.py -p <pdb_id> -o aas,tkz
 ```
+
+this will produce txt for both aas and tkz files
 
 ### -a
 
-this is a boolean flag, if present all the bonds specified will be annotated into the same outputFile, in this case the output format is automatically set to "aas" (even if the flag -o bpseq) is present, for example
+The `-a` flag is a boolean option. When present, it annotates all the specified bonds in a single outputFile. In this case, the output format is automatically set to "aas" (even if the `-o bpseq` flag is present).
 
+Example usage:
 ```
 python NA_pairwise_interactions.py -p <pdb_id> -a
 ```
 
 ### -aa (--outputFormat) 
 
-allows to filter in the output the type of interaction that you want to annotate  ("bpseq" or "aas")
-if this is omitted the output format is set to bpseq, for example
+The `-aa` is a boolean flag, when present it overrides the `-a` flag. When this flag is present the tool will produce 1 file for every bond type found + a file that contains every bond type. Also in this case, the output format is automatically set to "aas" (even if the `-o bpseq` flag is present).
 
 ```
 python NA_pairwise_interactions.py -p <pdb_id> -aa
@@ -131,3 +138,13 @@ This flag allows you to filter the model number that will be processed, for exam
 ```
 python NA_pairwise_interactions.py -p <pdb_id> -mn 1,2,3,4
 ```
+
+## 2dToTkz
+
+If you want to convert existing aas or bpseq files into the tkz format, you can use the `2dToTkz.py` script.
+
+To utilize this feature, follow these steps:
+
+1. Navigate to the `../fr3d/extension` folder.
+2. Use the following command: `python 2dToTkz.py [inputFilePath] [outputFilePath]`
+
