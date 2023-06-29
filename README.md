@@ -3,10 +3,10 @@
 
 RNA3Dto2D is a RNA structure converter/visualizer, powered by FR3D.
 
-## Citation
+### Citation
 [FR3D](https://www.bgsu.edu/research/rna/software/fr3d.html) is a powerful tool developed by [BGSU](https://www.bgsu.edu) to find small RNA motifs (two to 20 nucleotides) in RNA 3D structures from the Protein Data Bank.  
 
-## Papers
+### Papers
 **FR3D: Finding Local and Composite Recurrent Structural Motifs in RNA 3D Structures**
 Michael Sarver · Craig L. Zirbel · Jesse Stombaugh · Ali Mokdad · Neocles B. Leontis
 [Journal of Mathematical Biology](http://link.springer.com/journal/285). 56, Nos. 1-2, January 2008. [pdf](http://link.springer.com/article/10.1007%2Fs00285-007-0110-x).
@@ -38,7 +38,26 @@ pip install mmcif-pdbx
 This will put the PDBx package in your Python path.
 
 ## Usage example
-# //TODO:
+
+To use the tool navigate to the project folder that you cloned and run `python 3Dto2D.py` with the respective input and output path
+
+Examples:
+
+If you want extract the 2D structure from a file `exampleFile.cif` and output the result in the folder `exampleFolder` use:
+```sh
+python 3Dto2D.py C:\Users\...\exampleFile.cif C:\Users\...\exampleFolder
+```
+If you want extract the 2D structure of every .cif/pbd files contained in the folder `exampleInputFolder` and output the result in the folder `exampleFolder` use:
+```sh
+python 3Dto2D.py C:\Users\...\exampleInputFolder C:\Users\...\exampleFolder
+```
+If you want extract the 2D structure from the RNA [pbdid] that will be downloaded from the database and output the result in the folder `exampleFolder` use: (replace 'XXXX' with the pbdid of the chain you want to download)
+```sh
+python 3Dto2D.py XXXX.cif C:\Users\...\exampleFolder
+```
+
+you can add additional options to further specify additional informations regarding the output that will be produced 
+ 
 ## Options 
 - Input path **(mandatory)**
 _If the argument is not a directory and a file is not found, it will be downloaded._
@@ -51,7 +70,7 @@ _If the argument is not a directory and a file is not found, it will be download
 ```sh
 -output_FolderPath <path_to_dir>
 ```
-- Output type(s) **(if omitted, the default type is BPSEQ)**
+- Output type(s) **(if omitted, the default type is AAS)**
 _Structures output file type: **AAS, BPSEQ**_
 _Arc diagram output file type: **PNG, TKZ**_
 ```sh
