@@ -12,7 +12,7 @@ Michael Sarver · Craig L. Zirbel · Jesse Stombaugh · Ali Mokdad · Neocles B.
 [Journal of Mathematical Biology](http://link.springer.com/journal/285). 56, Nos. 1-2, January 2008. [pdf](http://link.springer.com/article/10.1007%2Fs00285-007-0110-x).
 
 ## Goal of the tool
-The goal of the tool is to convert PDBx/mmCIF files into AAS/BSEQ files and supply a visual output to TIKZ or PNG. We used FR3D to identify base pairs.
+The goal of the tool is to convert PDBx/mmCIF files into AAS/BPSEQ files and supply a visual output to TIKZ or PNG. We used FR3D to identify base pairs.
 
 ## Installation
 Start by cloning this repository and executing the script `setup.py`
