@@ -287,6 +287,7 @@ if __name__=="__main__":
     parser.add_argument('-c', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
     parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas,bpseq,tkz,png)")
     parser.add_argument('-mn', "--modelNumber", help="Writes only output in model number specified (mn1,mn2,mn3,mn4,...)")
+    parser.add_argument('-p',  action='store_true', help="Download the pdb from the database")
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
 
@@ -320,7 +321,11 @@ if __name__=="__main__":
 
     allStructure = args.a
     allAnnotations = args.aa
-
+    
+    if not(args.p) and not(os.path.exists(input_Path)):
+        print ("INPUT PATH NOT EXIST")
+        sys.exit()
+        
     if input_Path.endswith(".cif") or input_Path.endswith(".pdb"):
         entry_id = os.fsdecode(input_Path)
         generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
