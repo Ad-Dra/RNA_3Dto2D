@@ -284,11 +284,12 @@ if __name__=="__main__":
     parser.add_argument('input_path', help='input paths of the files containing the 3d structure')
     parser.add_argument('output_FolderPath', help='output path of the folder in which the program will produce the output')
     # aggiunte:
-    parser.add_argument('-l', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
+    parser.add_argument('-c', "--category", help='Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)')
     parser.add_argument('-o', "--outputFormat", help="Establish the type of output format (aas,bpseq,tkz,png)")
+    parser.add_argument('-mn', "--modelNumber", help="Writes only output in model number specified (mn1,mn2,mn3,mn4,...)")
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
-    parser.add_argument('-mn', "--modelNumber", help="Writes only output in model number specified (mn1,mn2,mn3,mn4,...)")
+
 
     problem = False
     args = parser.parse_args()
@@ -323,13 +324,3 @@ if __name__=="__main__":
     if input_Path.endswith(".cif") or input_Path.endswith(".pdb"):
         entry_id = os.fsdecode(input_Path)
         generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
-    elif os.path.isdir(input_Path):
-        # If it's a folder, execute for every .cif (and .pdb?)
-        directory = os.fsencode(input_Path)
-    
-        for file in os.listdir(directory):
-            filename = os.fsdecode(file)
-            # input just works with .cif and .pdb
-            if filename.endswith(".cif") or filename.endswith(".pdb"): 
-                entry_id = filename
-                generate_output_files(entry_id, filename, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
