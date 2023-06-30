@@ -1,18 +1,17 @@
 # RNA3Dto2D
 ## _RNA 3D Structure to 2D_
 
-RNA3Dto2D is a RNA structure converter/visualizer, powered by FR3D.
+RNA3Dto2D is a RNA structure converter/visualizer, using some of the functionalities provided by FR3D.
 
-### Citation
-[FR3D](https://www.bgsu.edu/research/rna/software/fr3d.html) is a powerful tool developed by [BGSU](https://www.bgsu.edu) to find small RNA motifs (two to 20 nucleotides) in RNA 3D structures from the Protein Data Bank.  
+### FR3D
+[FR3D](https://www.bgsu.edu/research/rna/software/fr3d.html) is a powerful tool developed by [BGSU](https://www.bgsu.edu) to find small RNA motifs (two to 20 nucleotides) in RNA 3D structures from the Protein Data Bank.
 
-### Papers
 **FR3D: Finding Local and Composite Recurrent Structural Motifs in RNA 3D Structures**
 Michael Sarver · Craig L. Zirbel · Jesse Stombaugh · Ali Mokdad · Neocles B. Leontis
 [Journal of Mathematical Biology](http://link.springer.com/journal/285). 56, Nos. 1-2, January 2008. [pdf](http://link.springer.com/article/10.1007%2Fs00285-007-0110-x).
 
 ## Goal of the tool
-The goal of the tool is to convert PDBx/mmCIF files into AAS/BPSEQ files and supply a visual output to TIKZ or PNG. We used FR3D to identify base pairs.
+The goal of the tool is to convert RNA 3D tructure contained in PDBx/mmCIF files into the secondary structure in AAS/BPSEQ formats and supply the visual output of the arc diagram of the structure in PNG ot TKZ (LateX compatible visualization). We used FR3D to identify base pairs.
 
 ## Installation
 Start by cloning this repository and executing the script `setup.py`
