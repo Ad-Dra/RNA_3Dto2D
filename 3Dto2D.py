@@ -291,7 +291,6 @@ if __name__=="__main__":
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
 
-
     problem = False
     args = parser.parse_args()
 
@@ -321,11 +320,10 @@ if __name__=="__main__":
 
     allStructure = args.a
     allAnnotations = args.aa
-    
+
     if not(args.p) and not(os.path.exists(input_Path)):
         print ("INPUT PATH NOT EXIST")
         sys.exit()
         
-    if input_Path.endswith(".cif") or input_Path.endswith(".pdb"):
-        entry_id = os.fsdecode(input_Path)
-        generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
+    entry_id = os.fsdecode(input_Path)
+    generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
