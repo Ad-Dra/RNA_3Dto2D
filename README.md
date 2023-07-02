@@ -59,6 +59,7 @@ you can add additional options to further specify additional informations regard
  
 ## Options 
 
+```sh
 positional arguments:
   input_path            input paths of the files containing the 3d structure
   output_FolderPath     output path of the folder in which the program will produce the output
@@ -66,14 +67,15 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -c CATEGORY, --category CATEGORY
-                        Interaction category or categories for the output separated by comma (cWW,tHS,tSW...)
+                        Interaction category or categories for the output separated by comma (example: cWW,tHS,tSW...)
   -o OUTPUTFORMAT, --outputFormat OUTPUTFORMAT
-                        Establish the type of output format (aas,bpseq,tkz,png)
+                        Establish the type of output format (example: aas,bpseq,tkz,png)
   -mn MODELNUMBER, --modelNumber MODELNUMBER
-                        Writes only output in model number specified (mn1,mn2,mn3,mn4,...)
+                        Writes only output in model number specified (example: mn1,mn2,mn3,mn4,...)
   -p                    Download the pdb from the database
   -a                    Annotates every bond type in one output file (the format can only be aas!)
   -aa                   Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)
+```
 
 - Input path **(mandatory)**
 _If the argument is not a directory and a file is not found, it will be downloaded._
