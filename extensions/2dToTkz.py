@@ -7,15 +7,16 @@ def extractBpseqFromBpseq(chain):
     triplets = []
     lines = chain.split('\n')
     for line in lines:
-        parts = line.split()
-        if len(parts) == 3:
-            try:
-                num1 = int(parts[0])
-                char = parts[1]
-                num2 = int(parts[2])
-                triplets.append([num1, char, num2])
-            except ValueError:
-                pass
+        if len(line) > 0 and line[0] != '#':
+            parts = line.split()
+            if len(parts) == 3:
+                try:
+                    num1 = int(parts[0])
+                    char = parts[1]
+                    num2 = int(parts[2])
+                    triplets.append([num1, char, num2])
+                except ValueError:
+                    pass
     return triplets
 
 def extractBpseqFromAas(chain):
@@ -83,7 +84,7 @@ def write_Tkz_txt(bpseq, filename):
         res += f"\t\\node [] ({n1}b) at ({i}, -1) {{{n1}}};\n"
         i = i+1
 
-    res += f"\t\end{{pgfonlayer}}\t\n\\begin{{pgfonlayer}}{{edgelayer}}\n\t\t\draw ({si}.center) to ({li}.center);\n"
+    res += f"\t\\draw ({si}.center) to ({li}.center);\n"
     temp = []
 
     for n1,b,n2 in bpseq:
@@ -99,7 +100,7 @@ def write_Tkz_txt(bpseq, filename):
     with open(filename,'w') as f:
         f.write(res)
 
-    print("Tkz with holes written successfully!")
+    print("Tkz written successfully!")
 
 def write_Tkz_with_holes(bpseq, filename):
     res = f"\\begin{{tikzpicture}}\n\t\\node [] (h1) at (0, 0) " + "{}" + ";\n\t\\node [] (h1a) at (0, -0.5) {$\Box$};\n\t\\node [] (h1b) at (0, -1) {$1$};\n"
@@ -134,6 +135,8 @@ def write_Tkz_with_holes(bpseq, filename):
 
     with open(filename,'w') as f:
         f.write(res)
+
+    print("Tkz with holes written successfully!")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Description of your program')

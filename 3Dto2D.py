@@ -320,12 +320,10 @@ if __name__=="__main__":
     allStructure = args.a
     allAnnotations = args.aa
 
-
     if not(args.p) and not(os.path.exists(input_Path)):
         print ("INPUT PATH NOT EXIST")
         sys.exit()
         
     entry_id = os.fsdecode(input_Path)
-    generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
-    entry_id = os.fsdecode(input_Path)
+
     generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
