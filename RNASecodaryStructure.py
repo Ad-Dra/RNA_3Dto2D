@@ -2,6 +2,10 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 class RNASecondaryStructure:
+    """
+    Questa classe rappresenta una struttura secondaria di RNA e offre i metodi per generare file di output diversi
+    """
+
     def __init__(self, sequence, pdbid):
         self.sequence = sequence
         self.pdbid = pdbid
@@ -35,6 +39,7 @@ class RNASecondaryStructure:
         self.bonds.append(bond)
 
     def write_output_file(self, bond_types, model_number, output_formats, outputFolder):
+        # Genera tutti i file di output richiesti
         if 'bpseq' in output_formats:
             self.write_bpseq_txt(bond_types, model_number, outputFolder)
         if "aas" in output_formats:
@@ -50,10 +55,12 @@ class RNASecondaryStructure:
         bpseq_sequence = []
         for baseNumber, base in self.sequence:
 
+            # Inizializza le terne che formano una riga di bpseq
             baseNum1 = baseNumber
             baseLetter = base
             baseNum2 = 0
 
+            # Modifica la seconda base da 0 a base2 per ogni legame
             for bond in self.bonds:
                 if bond.bondType == bondType and int(baseNumber) == bond.base1 and abs(model_number) == abs(bond.model_number):
                     baseNum2 = bond.base2   
@@ -74,20 +81,23 @@ class RNASecondaryStructure:
         
         for bond in sorted_bonds:
             if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
-                # Create a tuple representing the bond
+                # Crea una coppia che rappresenta il legame
                 bond_tuple = (bond.base1, bond.base2)
                 
-                # Check if the bond is already in the set
+                # Controlla se il legame è già presente
                 if bond_tuple in unique_bonds:
-                    continue  # Skip duplicate bond
+                    continue  
                 
-                unique_bonds.add(bond_tuple)  # Add the bond to the set
+                # Aggiunge il legame alla struttura
+                unique_bonds.add(bond_tuple)  
                 aas_sequence.append(f"({bond.base1 - firstBaseIndex},{bond.base2 - firstBaseIndex});")
         
         return aas_sequence
 
     def write_aas_txt(self, bond_types, model_number, output_folder):
-
+        """
+        Genera il file aas
+        """
         if not self.any_bonds_found(bond_types, model_number):
             return
 
@@ -102,6 +112,9 @@ class RNASecondaryStructure:
                 f.write(str(line))
 
     def write_bpseq_txt(self, bond_type, model_number, output_folder):
+        """
+        Genera il file bpseq
+        """
         if len(bond_type) > 1 or not self.any_bonds_found(bond_type, model_number): # Bpseq con più di un legame può causare conflitti
             return
 
@@ -116,6 +129,9 @@ class RNASecondaryStructure:
                 f.write(str(line + "\n"))
 
     def write_arc_diagram_png(self, bond_types, model_number, output_folder):
+        """
+        Genera un disegno png dell'arc diagram
+        """
 
         if not self.any_bonds_found(bond_types, model_number):
             return
@@ -208,7 +224,9 @@ class RNASecondaryStructure:
         image.save(filename, "PNG")
     
     def write_tkz_txt(self, bond_types, model_number, output_folder):
-
+        """
+        Genera il file tkz con un nodo per ogni base della catena
+        """
         if not self.any_bonds_found(bond_types, model_number):
             return
 
@@ -219,6 +237,7 @@ class RNASecondaryStructure:
         i = 0
         si = self.sequence[0][0]
         li = self.sequence[-1][0]
+        # Aggiunge nodi con lettere e numeri per la sequenza
         for n1,b in self.sequence:
             res += f"\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
             res += f"\t\\node [style=none] ({n1}a) at ({i}, -0.5) {{{b}}};\n"
@@ -227,29 +246,32 @@ class RNASecondaryStructure:
 
         res += f"\t\draw ({si}.center) to ({li}.center);\n"
 
-        # for n1,b in self.sequence:
-        #     for bond in self.bonds:
-        #         if bond.bondType in bond_types and n1 == bond.base1 and abs(model_number) == bond.model_number:
-        #             res += f"\t\t\draw [bend left=90, looseness=2.00] ({n1}.center) to ({bond.base2}.center);\n"
-
+        # Aggiunge gli archi fra le basi che formano legami
         for bond in self.bonds:
-            print(bond.base1, bond.base2)
             if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
                 res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
 
         res += f"\end{{tikzpicture}}"
 
+        # Crea il file tkz
         with open(filename,'w') as f:
             f.write(res)
 
     def any_bonds_found(self, bond_types, model_number):
+        """
+        Ritorna True se nella struttura ci sono legami nella categoria e model number richiesti
+        """
         for bond in self.bonds:
             if abs(bond.model_number) == abs(model_number) and bond.bondType in bond_types:
                 return True
 
     def write_Tkz_with_holes(self, bond_types, model_number, output_folder):
-        
+        """
+        Genera un file tkz evidenziando i "buchi" dove si possono formare legami con altre basi azotate
+        """
+
         if not self.any_bonds_found(bond_types, model_number):
+            # Se non ci sono legami in questa categorie e model number il file non viene generato
             return
 
         res = f"\\begin{{tikzpicture}}\n\t\\node [] (h1) at (0, 0) " + "{}" + ";\n\t\\node [] (h1a) at (0, -0.5) {$\Box$};\n\t\\node [] (h1b) at (0, -1) {$1$};\n"
@@ -265,6 +287,7 @@ class RNASecondaryStructure:
 
         i = 1
         h = 0
+        # Ordina le basi che formano nodi ignorando quelle slegate
         for val in values:
             res += f"\t\\node [draw, fill=black, circle] ({val}) at ({i+h}, 0) " + "{}" + ";\n"
             res += f"\t\\node [] (h{h+2}) at ({h+i+1}, 0) "+"{}"+f";\n\t\\node [] (h{h+2}a) at ({h+i+1}, -0.5)"+"{$\Box$};\n\t\\node []"+f"(h{h+2}b) at ({h+i+1}, -1)"+"{$"+f"{h+2}"+"$};\n"
@@ -273,16 +296,21 @@ class RNASecondaryStructure:
 
         res += f"\t\\draw (h1.center) to (h{h+1}.center);\n"
 
+        # Aggiunge gli archi alle basi che formano legami
         for bond in self.bonds:
             if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
                 res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
 
         res += f"\end{{tikzpicture}}"
 
+        # Crea il file tkz
         with open(filename,'w') as f:
             f.write(res)
 
 def generate_file_name(pbdID, model_number, bond_types, output_format, output_folder_path, extension):
+    """
+    Ritorna un nome univoco per il file di utput in base al pbdID, model_number, bond_types, output_format
+    """
 
     filename = ""
 
@@ -299,7 +327,11 @@ def generate_file_name(pbdID, model_number, bond_types, output_format, output_fo
 
     return filename
 
+
 class Bond:
+    """
+    Questa classe rappresenta un legame fra 2 basi nucleiche
+    """
     def __init__(self, bases, bond_type, model_number):
         self.bases = bases
         self.bond_type = bond_type
