@@ -69,7 +69,7 @@ def compute_sequence(chain):
 
 #returns an array containing every model found as ints
 def modelFound(input_string):
-    start_index = input_string.find("'p_1': [") #Forse p_1 cambia qualche volta?
+    start_index = input_string.find("'p_1': [")
     end_index = input_string.find("]", start_index)
     section_string = input_string[start_index:end_index+1]
 
@@ -98,19 +98,18 @@ def extractSecondaryStrincture(pdbid,interaction_to_list_of_tuples,categories,ca
     rna_structure = RNASecondaryStructure(sequence, pdbid)
 
     for category in categories.keys():
-        
-        for interaction in category_to_interactions[category]:
+
+        for interaction in category_to_interactions['basepair']:
             inter = interaction
             if category == 'basepair':
                 inter = simplify_basepair(interaction)
-            
-            if len(categories[category]) == 0 or inter in categories[category]:
+
+            if len(categories[category]) == 0 or inter in categories['basepair']:
                 for a,b,c in interaction_to_list_of_tuples[interaction]:
-                    if inter in cat:
-                        if isSameModelNumber(a, abs(int(modelNumber))):
-                            b1 = int((a.split("|"))[4])
-                            b2 = int((b.split("|"))[4])
-                            rna_structure.add_bond(b1, b2, str(inter), modelNumber)                
+                    if isSameModelNumber(a, abs(int(modelNumber))):
+                        b1 = int((a.split("|"))[4])
+                        b2 = int((b.split("|"))[4])
+                        rna_structure.add_bond(b1, b2, str(inter), int(modelNumber))                
         
         return rna_structure
 
@@ -291,7 +290,6 @@ if __name__=="__main__":
     parser.add_argument('-a',  action='store_true', help="Annotates every bond type in one output file (the format can only be aas!)")
     parser.add_argument('-aa',  action='store_true', help="Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)")
 
-
     problem = False
     args = parser.parse_args()
 
@@ -315,17 +313,16 @@ if __name__=="__main__":
         opt = ["aas"] #default = aas
 
     for outputType in opt:
-        if(outputType != "aas" and outputType != "bpseq" and outputType != "tkz" and outputType != "png"):
+        if(outputType != "aas" and outputType != "bpseq" and outputType != "tkz" and outputType != "png" and outputType != "tkzb"):
             print ("OUTPUT FORMAT IS NOT VALID: " , outputType)
             sys.exit()
 
     allStructure = args.a
     allAnnotations = args.aa
-    
+
     if not(args.p) and not(os.path.exists(input_Path)):
         print ("INPUT PATH NOT EXIST")
         sys.exit()
         
-    if input_Path.endswith(".cif") or input_Path.endswith(".pdb"):
-        entry_id = os.fsdecode(input_Path)
-        generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)
+    entry_id = os.fsdecode(input_Path)
+    generate_output_files(entry_id, input_Path, output_FolderPath, category, opt, allStructure, allAnnotations, mn)

@@ -21,11 +21,12 @@ class RNASecondaryStructure:
 
         base_indexes = [int(base[0]) for base in self.sequence]
         if base1_number not in base_indexes or base2_number not in base_indexes:
+            
             # Indice fuori dalla sequenza, return
             return
 
         for bond in self.bonds:
-            if bond.base1 == base1_number and bond.base2 == base2_number and bond.model_number == model_number:
+            if bond.base1 == base1_number and bond.base2 == base2_number and bond.bondType == bond_type and bond.model_number == model_number:
                 # Il legame esiste già
                 return
 
@@ -40,6 +41,8 @@ class RNASecondaryStructure:
             self.write_aas_txt(bond_types, model_number, outputFolder)
         if "tkz" in output_formats:
             self.write_tkz_txt(bond_types, model_number, outputFolder)
+        if "tkzb" in output_formats:
+            self.write_Tkz_with_holes(bond_types, model_number, outputFolder)
         if  "png" in output_formats:
             self.write_arc_diagram_png(bond_types, model_number, outputFolder)
 
@@ -52,9 +55,9 @@ class RNASecondaryStructure:
             baseNum2 = 0
 
             for bond in self.bonds:
-                if bond.bondType == bondType and int(baseNumber) == bond.base1 and abs(model_number) == bond.model_number:
+                if bond.bondType == bondType and int(baseNumber) == bond.base1 and abs(model_number) == abs(bond.model_number):
                     baseNum2 = bond.base2   
-                elif bond.bondType == bondType and int(baseNumber) == bond.base2 and abs(model_number) == bond.model_number:
+                elif bond.bondType == bondType and int(baseNumber) == bond.base2 and abs(model_number) == abs(bond.model_number):
                     baseNum2 = bond.base1
 
             bpseq_sequence.append(f"{baseNum1} {baseLetter} {baseNum2}")
@@ -70,7 +73,7 @@ class RNASecondaryStructure:
         sorted_bonds = sorted(self.bonds, key=lambda bond: bond.base1)
         
         for bond in sorted_bonds:
-            if bond.bondType in bond_types and abs(model_number) == bond.model_number:
+            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
                 # Create a tuple representing the bond
                 bond_tuple = (bond.base1, bond.base2)
                 
@@ -86,6 +89,8 @@ class RNASecondaryStructure:
     def write_aas_txt(self, bond_types, model_number, output_folder):
 
         if not self.any_bonds_found(bond_types, model_number):
+            print( bond_types, model_number)
+            print("NOOOO")
             return
 
         filename = generate_file_name(self.pdbid, model_number, bond_types, "aas", output_folder, "txt")
@@ -211,33 +216,72 @@ class RNASecondaryStructure:
 
         filename = generate_file_name(self.pdbid, model_number, bond_types, "tkz", output_folder, "txt")
 
-        res = f"\\begin{{tikzpicture}}\n\t\\begin{{pgfonlayer}}{{nodelayer}}\n"
+        res = f"\\begin{{tikzpicture}}\n"
 
         i = 0
         si = self.sequence[0][0]
         li = self.sequence[-1][0]
         for n1,b in self.sequence:
-            res += f"\t\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
-            res += f"\t\t\\node [style=none] ({n1}a) at ({i}, -1) {{{b}}};\n"
-            res += f"\t\t\\node [style=none] ({n1}b) at ({i}, -2) {{{n1}}};\n"
+            res += f"\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
+            res += f"\t\\node [style=none] ({n1}a) at ({i}, -0.5) {{{b}}};\n"
+            res += f"\t\\node [style=none] ({n1}b) at ({i}, -1) {{{n1}}};\n"
             i = i+1
 
-        res += f"\t\end{{pgfonlayer}}\t\n\\begin{{pgfonlayer}}{{edgelayer}}\n\t\t\draw ({si}.center) to ({li}.center);\n"
+        res += f"\t\draw ({si}.center) to ({li}.center);\n"
 
-        for n1,b in self.sequence:
-            for bond in self.bonds:
-                if bond.bondType in bond_types and n1 == bond.base1 and abs(model_number) == bond.model_number:
-                    res += f"\t\t\draw [bend left=90, looseness=2.00] ({n1}.center) to ({bond.base2}.center);\n"
+        # for n1,b in self.sequence:
+        #     for bond in self.bonds:
+        #         if bond.bondType in bond_types and n1 == bond.base1 and abs(model_number) == bond.model_number:
+        #             res += f"\t\t\draw [bend left=90, looseness=2.00] ({n1}.center) to ({bond.base2}.center);\n"
 
-        res += f"\t\end{{pgfonlayer}}\n\end{{tikzpicture}}"
+        for bond in self.bonds:
+            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
+                res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
+
+        res += f"\end{{tikzpicture}}"
 
         with open(filename,'w') as f:
             f.write(res)
 
     def any_bonds_found(self, bond_types, model_number):
         for bond in self.bonds:
-            if bond.model_number == abs(model_number) and bond.bondType in bond_types:
+            if abs(bond.model_number) == abs(model_number) and bond.bondType in bond_types:
                 return True
+
+    def write_Tkz_with_holes(self, bond_types, model_number, output_folder):
+        
+        if not self.any_bonds_found(bond_types, model_number):
+            return
+
+        res = f"\\begin{{tikzpicture}}\n\t\\node [] (h1) at (0, 0) " + "{}" + ";\n\t\\node [] (h1a) at (0, -0.5) {$\Box$};\n\t\\node [] (h1b) at (0, -1) {$1$};\n"
+
+        filename = generate_file_name(self.pdbid, model_number, bond_types, "tkzB", output_folder, "txt")
+
+        values = []
+        for bond in self.bonds:
+            if bond.base1 not in values: 
+                values.append(bond.base1)
+                values.append(bond.base2)
+        values.sort()
+
+        i = 1
+        h = 0
+        for val in values:
+            res += f"\t\\node [draw, fill=black, circle] ({val}) at ({i+h}, 0) " + "{}" + ";\n"
+            res += f"\t\\node [] (h{h+2}) at ({h+i+1}, 0) "+"{}"+f";\n\t\\node [] (h{h+2}a) at ({h+i+1}, -0.5)"+"{$\Box$};\n\t\\node []"+f"(h{h+2}b) at ({h+i+1}, -1)"+"{$"+f"{h+2}"+"$};\n"
+            i = i + 1
+            h = h + 1
+
+        res += f"\t\\draw (h1.center) to (h{h+1}.center);\n"
+
+        for bond in self.bonds:
+            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
+                res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
+
+        res += f"\end{{tikzpicture}}"
+
+        with open(filename,'w') as f:
+            f.write(res)
 
 def generate_file_name(pbdID, model_number, bond_types, output_format, output_folder_path, extension):
 
@@ -281,16 +325,3 @@ class Bond:
     @model_number.setter
     def model_number(self, value):
         self._model_number = value
-
-#DEBUG
-# if __name__=="__main__":
-#     rna_structure = RNASecondaryStructure([[1, 'A'], [2, 'C'], [3, 'G'], [4, 'U'], [5, 'A'], [6, 'A']], "100d")
-#     rna_structure.add_bond(1, 3, 'cWW', 1)
-#     rna_structure.add_bond(2, 4, 'cWW', 1)
-#     rna_structure.add_bond(2, 6, 'cWW', 1)
-#     rna_structure.add_bond(3, 4, 'tHS', 3)
-#     rna_structure.add_bond(1, 6, 'tHS', 3)
-
-#     bpseq_sequence = rna_structure.generate_bpseq_sequence("cWW", 1)
-#     outputs = ["aas","bpseq","tkz", "png"]
-#     rna_structure.write_output_file(["cWW"], 3, outputs, "C:\\Users\\lolli\\OneDrive\\Desktop\\NAPairwiseInteractions\\")
