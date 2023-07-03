@@ -58,10 +58,28 @@ python 3Dto2D.py XXXX.cif C:\Users\...\exampleFolder
 you can add additional options to further specify additional informations regarding the output that will be produced 
  
 ## Options 
+
+```sh
+positional arguments:
+  input_path            input paths of the files containing the 3d structure
+  output_FolderPath     output path of the folder in which the program will produce the output
+
+options:
+  -h, --help            show this help message and exit
+  -c CATEGORY, --category CATEGORY
+                        Interaction category or categories for the output separated by comma (example: cWW,tHS,tSW...)
+  -o OUTPUTFORMAT, --outputFormat OUTPUTFORMAT
+                        Establish the type of output format (example: aas,bpseq,tkz,png)
+  -mn MODELNUMBER, --modelNumber MODELNUMBER
+                        Writes only output in model number specified (example: mn1,mn2,mn3,mn4,...)
+  -p                    Download the pdb from the database
+  -a                    Annotates every bond type in one output file (the format can only be aas!)
+  -aa                   Generates one output file for each bond type and a file with every bond in it (the output format can only be aas!)
+```
+
 - Input path **(mandatory)**
 _If the argument is not a directory and a file is not found, it will be downloaded._
 ```sh
---input_path <path_to_dir>
 --input_path <path_to_pdb>
 --input_path <pdb_id>
 ```

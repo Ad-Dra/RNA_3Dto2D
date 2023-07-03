@@ -21,7 +21,6 @@ class RNASecondaryStructure:
 
         base_indexes = [int(base[0]) for base in self.sequence]
         if base1_number not in base_indexes or base2_number not in base_indexes:
-            
             # Indice fuori dalla sequenza, return
             return
 
@@ -222,9 +221,9 @@ class RNASecondaryStructure:
         si = self.sequence[0][0]
         li = self.sequence[-1][0]
         for n1,b in self.sequence:
-            res += f"\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
-            res += f"\t\\node [style=none] ({n1}a) at ({i}, -0.5) {{{b}}};\n"
-            res += f"\t\\node [style=none] ({n1}b) at ({i}, -1) {{{n1}}};\n"
+            res += f"\t\t\\node [draw, fill=black, circle] ({n1}) at ({i}, 0) " + "{}" + ";\n"
+            res += f"\t\t\\node [style=none] ({n1}a) at ({i}, -1) {{{b}}};\n"
+            res += f"\t\t\\node [style=none] ({n1}b) at ({i}, -2) {{{n1}}};\n"
             i = i+1
 
         res += f"\t\draw ({si}.center) to ({li}.center);\n"
@@ -247,41 +246,6 @@ class RNASecondaryStructure:
         for bond in self.bonds:
             if abs(bond.model_number) == abs(model_number) and bond.bondType in bond_types:
                 return True
-
-    def write_Tkz_with_holes(self, bond_types, model_number, output_folder):
-        
-        if not self.any_bonds_found(bond_types, model_number):
-            return
-
-        res = f"\\begin{{tikzpicture}}\n\t\\node [] (h1) at (0, 0) " + "{}" + ";\n\t\\node [] (h1a) at (0, -0.5) {$\Box$};\n\t\\node [] (h1b) at (0, -1) {$1$};\n"
-
-        filename = generate_file_name(self.pdbid, model_number, bond_types, "tkzB", output_folder, "txt")
-
-        values = []
-        for bond in self.bonds:
-            if bond.base1 not in values: 
-                values.append(bond.base1)
-                values.append(bond.base2)
-        values.sort()
-
-        i = 1
-        h = 0
-        for val in values:
-            res += f"\t\\node [draw, fill=black, circle] ({val}) at ({i+h}, 0) " + "{}" + ";\n"
-            res += f"\t\\node [] (h{h+2}) at ({h+i+1}, 0) "+"{}"+f";\n\t\\node [] (h{h+2}a) at ({h+i+1}, -0.5)"+"{$\Box$};\n\t\\node []"+f"(h{h+2}b) at ({h+i+1}, -1)"+"{$"+f"{h+2}"+"$};\n"
-            i = i + 1
-            h = h + 1
-
-        res += f"\t\\draw (h1.center) to (h{h+1}.center);\n"
-
-        for bond in self.bonds:
-            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
-                res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
-
-        res += f"\end{{tikzpicture}}"
-
-        with open(filename,'w') as f:
-            f.write(res)
 
 def generate_file_name(pbdID, model_number, bond_types, output_format, output_folder_path, extension):
 
