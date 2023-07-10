@@ -160,6 +160,7 @@ def write_txt_output_file(outputFile,pdbid,interaction_to_list_of_tuples,categor
     for model in mn:
         if model not in models:
             return
+        model = int(model)
         if len(models) == 1:
             model = -1
 
