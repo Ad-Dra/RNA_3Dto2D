@@ -25,7 +25,6 @@ class RNASecondaryStructure:
 
         base_indexes = [int(base[0]) for base in self.sequence]
         if base1_number not in base_indexes or base2_number not in base_indexes:
-            
             # Indice fuori dalla sequenza, return
             return
 
@@ -80,7 +79,7 @@ class RNASecondaryStructure:
         sorted_bonds = sorted(self.bonds, key=lambda bond: bond.base1)
         
         for bond in sorted_bonds:
-            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
+            if bond.bondType in bond_types and abs(int(model_number)) == abs(bond.model_number):
                 # Crea una coppia che rappresenta il legame
                 bond_tuple = (bond.base1, bond.base2)
                 
@@ -248,7 +247,7 @@ class RNASecondaryStructure:
 
         # Aggiunge gli archi fra le basi che formano legami
         for bond in self.bonds:
-            if bond.bondType in bond_types and abs(model_number) == abs(bond.model_number):
+            if bond.bondType in bond_types and abs(int(model_number)) == abs(bond.model_number):
                 res += f"\t\draw [bend left=90, looseness=2.00] ({bond.base1}.center) to ({bond.base2}.center);\n"
 
         res += f"\end{{tikzpicture}}"
@@ -262,7 +261,7 @@ class RNASecondaryStructure:
         Ritorna True se nella struttura ci sono legami nella categoria e model number richiesti
         """
         for bond in self.bonds:
-            if abs(bond.model_number) == abs(model_number) and bond.bondType in bond_types:
+            if abs(bond.model_number) == abs(int(model_number)) and bond.bondType in bond_types:
                 return True
 
     def write_Tkz_with_holes(self, bond_types, model_number, output_folder):
